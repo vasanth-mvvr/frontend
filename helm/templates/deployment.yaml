@@ -1,0 +1,47 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata: 
+  name: frontend
+  namespace: expense
+# Deployment lables
+  labels: 
+    component: frontend
+    project: expense
+    tier: web
+  
+spec: 
+  replicas: {{ .Values.deployment.replicas }}
+  selector:
+    matchLables:
+      component: frontend
+      project: expense
+      tier: web
+
+# pod definition
+
+  template:
+    metadata:
+      labels:
+        component: frontend
+        project: expense
+        tier: web
+
+    spec: 
+      containers:
+      - name: frontend
+        image: 656902114881.dkr.ecr.us-east-1.amazonaws.com/expense-frontend:{{ .Values.deployment.imageVersion }}
+        volumeMounts: 
+        - name: nginx-conf
+          mountPath: /etc/nginx/nginx.conf
+          subPath: nginx.conf
+          readOnly: true  
+        # envFrom:
+        # - configMapRef:
+        #     name: frontend
+      volumes:
+        - name: nginx-conf
+          configMap:
+            name: frontend
+            items:
+            - key: nginx.conf
+              path: nginx.conf
