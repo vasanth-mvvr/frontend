@@ -57,7 +57,7 @@ pipeline{
 
                 
                 """
-                // helm upgrade backend .   
+                // helm upgrade frontend .   
                 // Only for the first time we will install later we will opt to upgrade
             }
         }
