@@ -1,0 +1,85 @@
+pipeline{
+    agent{
+        label 'AGENT-1'
+    }
+    options{
+        timeout(time: 30,unit: 'MINUTES')
+        disableConcurrentBuilds()
+   //     ansiColor('xterm')
+    }
+     environment{
+    //     def appVersion = ''  # instead of using here for global we have env to use for safer option 
+           // see to that the nexus is created and the url is supplied here
+           def nexusUrl = '54.234.217.42:8081' 
+     } 
+
+    stages{
+        stage('version'){
+            steps{
+                script{
+                    def packageJson = readJSON file: 'package.json'
+                    def appVersion = packageJson.version
+                    echo "the app version is : ${appVersion}"
+
+                    env.APP_VERSION = appVersion  
+                }
+            }
+        }
+        stage('Build'){
+            steps{
+                sh """
+                zip -q -r frontend-${APP_VERSION}.zip * -x JenkinsFile -x frontend-${APP_VERSION}.zip
+                ls -ltr
+                """
+            }
+        }
+        stage('Nexus Artifact Upload'){
+            steps{
+                script{
+                    nexusArtifactUploader(
+                        nexusVersion: 'nexus3',
+                        protocol: 'http',
+                        nexusUrl: "${nexusUrl}",
+                        groupId: 'com.expense',
+                        version: "${APP_VERSION}",
+                        repository: 'frontend',
+                        // see to that the credentials are created in the jenkins settings credentials
+                        credentialsId: 'nexus_auth',
+                        artifacts:[
+                                [artifactId: 'frontend',
+                                classifier: '',
+                                file: 'frontend-'+"${APP_VERSION}"+'.zip',
+                                type: 'zip']
+
+                        ] 
+                    )
+                }
+            }
+        }
+        stage('Deploy'){
+            steps{
+                script{
+                        def params = [
+                            string(name: 'app_VERSION', value: "${APP_VERSION}" )
+                        ]
+                        build job: 'frontend-deploy', parameters: params, wait: false
+                }
+            } 
+        }
+        
+    }
+
+        post{
+            always {
+                echo ' i always say hello'
+              //  deleteDir()
+            }
+            success{
+                echo 'success'
+            }
+            failure{
+                echo 'failure'
+            }
+        }
+    
+}
